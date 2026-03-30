@@ -11,17 +11,11 @@ Autonomous experiment loop: try ideas, keep what works, discard what doesn't, ne
 
 ## Scripts
 
-Helper scripts are located at `<SKILL_DIR>/../scripts/`. Resolve the absolute path before first use:
+Helper scripts are bundled in `${CLAUDE_SKILL_DIR}/scripts/`:
 
-```bash
-SCRIPTS_DIR="$(cd "$(dirname "<SKILL_FILE>")/../scripts" && pwd)"
-```
-
-Replace `<SKILL_FILE>` with the actual path to this SKILL.md that was loaded. Then use:
-
-- **`$SCRIPTS_DIR/init_experiment.sh`** — configure session (name, metric, unit, direction)
-- **`$SCRIPTS_DIR/run_experiment.sh`** — run command, time it, parse `METRIC name=value` lines from output, run optional checks
-- **`$SCRIPTS_DIR/log_experiment.sh`** — record result, compute confidence score, auto-commit (keep) or auto-revert (discard/crash/checks_failed)
+- **`${CLAUDE_SKILL_DIR}/scripts/init_experiment.sh`** — configure session (name, metric, unit, direction)
+- **`${CLAUDE_SKILL_DIR}/scripts/run_experiment.sh`** — run command, time it, parse `METRIC name=value` lines from output, run optional checks
+- **`${CLAUDE_SKILL_DIR}/scripts/log_experiment.sh`** — record result, compute confidence score, auto-commit (keep) or auto-revert (discard/crash/checks_failed)
 
 ## Setup (no existing `autoresearch.md`)
 
@@ -31,9 +25,9 @@ Replace `<SKILL_FILE>` with the actual path to this SKILL.md that was loaded. Th
 4. Write `autoresearch.md` (session document — see template below). Commit.
 5. Write `autoresearch.sh` (benchmark script — see template below). Make it executable. Commit.
 6. If constraints require correctness checks (tests must pass, types must check), write `autoresearch.checks.sh`. Make it executable. Commit.
-7. Initialize: `$SCRIPTS_DIR/init_experiment.sh --name "<goal>" --metric "<metric_name>" --unit "<unit>" --direction "<lower|higher>"`
-8. Run baseline: `$SCRIPTS_DIR/run_experiment.sh --command "./autoresearch.sh"`
-9. Log baseline: `$SCRIPTS_DIR/log_experiment.sh --commit "$(git rev-parse --short HEAD)" --metric <value> --status keep --description "baseline"`
+7. Initialize: `${CLAUDE_SKILL_DIR}/scripts/init_experiment.sh --name "<goal>" --metric "<metric_name>" --unit "<unit>" --direction "<lower|higher>"`
+8. Run baseline: `${CLAUDE_SKILL_DIR}/scripts/run_experiment.sh --command "./autoresearch.sh"`
+9. Log baseline: `${CLAUDE_SKILL_DIR}/scripts/log_experiment.sh --commit "$(git rev-parse --short HEAD)" --metric <value> --status keep --description "baseline"`
 10. Start looping immediately.
 
 ## Resume (existing `autoresearch.md`)
@@ -113,13 +107,13 @@ pnpm typecheck 2>&1 | grep -i error || true
 Each iteration:
 1. Study the code/data. Think about what to try next.
 2. Make a code change. Stage it with `git add`.
-3. Run: `$SCRIPTS_DIR/run_experiment.sh --command "./autoresearch.sh"`
+3. Run: `${CLAUDE_SKILL_DIR}/scripts/run_experiment.sh --command "./autoresearch.sh"`
 4. Determine status:
    - Command passed + metric improved → `keep`
    - Command passed + metric worse/equal → `discard`
    - Command crashed or timed out → `crash`
    - Checks failed → `checks_failed`
-5. Log: `$SCRIPTS_DIR/log_experiment.sh --commit "$(git rev-parse --short HEAD)" --metric <value> --status <status> --description "<what you tried>" --asi '<json>'`
+5. Log: `${CLAUDE_SKILL_DIR}/scripts/log_experiment.sh --commit "$(git rev-parse --short HEAD)" --metric <value> --status <status> --description "<what you tried>" --asi '<json>'`
 6. Repeat.
 
 ### Rules

@@ -9,11 +9,7 @@ Turn a noisy autoresearch branch into clean, independent branches — one per lo
 
 ## Scripts
 
-Helper scripts are located at `<SKILL_DIR>/../scripts/`. Resolve the absolute path:
-
-```bash
-SCRIPTS_DIR="$(cd "$(dirname "<SKILL_FILE>")/../scripts" && pwd)"
-```
+The finalize script is bundled at `${CLAUDE_SKILL_DIR}/scripts/finalize.sh`.
 
 ## Step 1 — Analyze and Propose Groups
 
@@ -73,7 +69,7 @@ Key rules:
 Then run:
 
 ```bash
-bash "$SCRIPTS_DIR/finalize.sh" /tmp/autoresearch-groups.json
+bash "${CLAUDE_SKILL_DIR}/scripts/finalize.sh" /tmp/autoresearch-groups.json
 ```
 
 The script creates one branch per group from the merge-base, verifies the union matches the original branch, and prints a summary.
