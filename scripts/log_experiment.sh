@@ -169,7 +169,7 @@ echo "$RESULT_LINE" >> "$JSONL"
 case "$STATUS" in
   keep)
     git add -A
-    git commit -q -m "autoresearch: $DESCRIPTION"
+    git commit -q -m "autoresearch: $DESCRIPTION" 2>/dev/null || true
     ;;
   discard|crash|checks_failed)
     # Save autoresearch.* files
@@ -180,7 +180,8 @@ case "$STATUS" in
       fi
     done
 
-    # Revert working tree
+    # Revert working tree (reset index first to handle staged new files)
+    git reset HEAD -- . 2>/dev/null || true
     git checkout -- . 2>/dev/null || true
     git clean -fd 2>/dev/null || true
 
