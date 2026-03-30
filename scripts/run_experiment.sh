@@ -149,8 +149,8 @@ elif [[ $EXIT_CODE -eq 0 ]]; then
   CRASHED=false
 else
   PASSED=false
-  # Crash = killed by signal (exit > 128)
-  if [[ $EXIT_CODE -gt 128 ]]; then
+  # Crash = killed by signal (exit > 128 in shell convention, or negative from Python subprocess)
+  if [ "$EXIT_CODE" -gt 128 ] || [ "$EXIT_CODE" -lt 0 ]; then
     CRASHED=true
   else
     CRASHED=false
@@ -196,11 +196,8 @@ if [[ "$PASSED" == "true" && -f "$CHECKS_SCRIPT" && -x "$CHECKS_SCRIPT" ]]; then
   CHECKS_OUTPUT_JSON="\"$CHECKS_OUTPUT_ESCAPED\""
 fi
 
-# Escape tail output for JSON
-TAIL_ESCAPED=$(echo "$TAIL_OUTPUT" | json_escape_string)
-
 # --- Emit JSON via python3 to ensure valid output ---
-python3 - \
+_TAIL_OUTPUT="$TAIL_OUTPUT" python3 - \
   "$EXIT_CODE" \
   "$DURATION" \
   "$PASSED" \
@@ -210,13 +207,14 @@ python3 - \
   "$CHECKS_PASS_JSON" \
   "$CHECKS_TIMED_OUT_JSON" \
   "$CHECKS_OUTPUT_JSON" \
-  "$CHECKS_DURATION_JSON" \
-  "$TAIL_ESCAPED" << 'PYEOF'
-import sys, json
+  "$CHECKS_DURATION_JSON" << 'PYEOF'
+import sys, json, os
 
 (exit_code, duration, passed_s, crashed_s, timed_out_s,
  parsed_metrics_s, checks_pass_s, checks_timed_out_s,
- checks_output_s, checks_duration_s, tail_escaped) = sys.argv[1:]
+ checks_output_s, checks_duration_s) = sys.argv[1:]
+
+tail_output = os.environ.get('_TAIL_OUTPUT', '')
 
 def parse_bool_or_null(s):
     if s == 'null': return None
@@ -244,7 +242,7 @@ result = {
     "checks_timed_out": parse_bool_or_null(checks_timed_out_s),
     "checks_output": parse_json_or_null(checks_output_s),
     "checks_duration": parse_num_or_null(checks_duration_s),
-    "tail_output": tail_escaped,
+    "tail_output": tail_output,
 }
 
 print(json.dumps(result, separators=(',', ':')))
