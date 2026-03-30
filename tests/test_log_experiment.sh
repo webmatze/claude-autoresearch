@@ -40,6 +40,9 @@ assert_contains "$last_line" '"type":"result"' "has type result"
 assert_contains "$last_line" '"metric":12.34' "has metric value"
 assert_contains "$last_line" '"status":"keep"' "has status keep"
 assert_contains "$last_line" '"segment":0' "has segment 0"
+assert_contains "$last_line" '"confidence":null' "has confidence null when insufficient data"
+assert_contains "$last_line" '"metrics":{}' "has empty metrics by default"
+assert_contains "$last_line" '"asi":{}' "has empty asi by default"
 assert_contains "$output" "Run #1" "shows run number"
 teardown_tmp
 
@@ -92,6 +95,7 @@ output=$("$SCRIPTS_DIR/log_experiment.sh" \
   --jsonl "$TEST_DIR/autoresearch.jsonl")
 
 last_line=$(tail -1 "$TEST_DIR/autoresearch.jsonl")
+assert_contains "$last_line" '"metrics":{' "uses metrics key (not secondary_metrics)"
 assert_contains "$last_line" '"compile_s":3.2' "has compile_s"
 assert_contains "$last_line" '"render_s":8.8' "has render_s"
 teardown_tmp

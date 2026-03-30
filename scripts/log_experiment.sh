@@ -7,8 +7,8 @@ COMMIT=""
 METRIC=""
 STATUS=""
 DESCRIPTION=""
-SECONDARY_METRICS="null"
-ASI="null"
+SECONDARY_METRICS="{}"
+ASI="{}"
 JSONL="autoresearch.jsonl"
 
 # --- Argument parsing ---
@@ -42,6 +42,21 @@ if [[ -f "$JSONL" ]]; then
   SEGMENT=${SEGMENT:-0}
 fi
 
+# --- Read direction from config ---
+DIRECTION="lower"
+if [[ -f "$JSONL" ]]; then
+  DIRECTION=$(grep '"type":"config"' "$JSONL" | grep "\"segment\":$SEGMENT" | python3 -c "
+import sys, json
+for line in sys.stdin:
+    line = line.strip()
+    if line:
+        d = json.loads(line)
+        print(d.get('direction', 'lower'))
+        break
+" 2>/dev/null || echo "lower")
+  DIRECTION=${DIRECTION:-lower}
+fi
+
 # --- Count existing results in current segment ---
 RUN_COUNT=0
 if [[ -f "$JSONL" ]]; then
@@ -62,8 +77,8 @@ fi
 
 # --- Compute MAD-based confidence score ---
 CONFIDENCE="null"
-# Need 3+ existing results (so with current we have 4+ total, but spec says 3+ results exist)
-if [[ $RUN_COUNT -ge 3 ]]; then
+# Need 2+ existing results (so with current we have 3+ total)
+if [[ $RUN_COUNT -ge 2 ]]; then
   # Collect all metrics in current segment plus current metric
   ALL_METRICS=$(grep '"type":"result"' "$JSONL" | grep "\"segment\":$SEGMENT" | python3 -c "
 import sys, json
@@ -78,11 +93,12 @@ print(' '.join(str(m) for m in metrics))
   ALL_METRICS="$ALL_METRICS $METRIC"
 
   # MAD-based confidence: median, MAD, then |best_improvement| / MAD
-  CONFIDENCE=$(echo "$ALL_METRICS" "$BASELINE" | python3 -c "
+  CONFIDENCE=$(echo "$ALL_METRICS" "$BASELINE" "$DIRECTION" | python3 -c "
 import sys
 parts = sys.stdin.read().strip().split()
-baseline = float(parts[-1]) if parts[-1] != 'null' else None
-metrics = [float(x) for x in parts[:-1]]
+direction = parts[-1]
+baseline = float(parts[-2]) if parts[-2] != 'null' else None
+metrics = [float(x) for x in parts[:-2]]
 n = len(metrics)
 if n < 3 or baseline is None:
     print('null')
@@ -100,7 +116,7 @@ else:
     if mad == 0:
         print('null')
     else:
-        best = min(metrics)  # for 'lower is better'; could check direction
+        best = max(metrics) if direction == 'higher' else min(metrics)
         improvement = abs(best - baseline)
         confidence = improvement / mad
         print(round(confidence, 4))
@@ -110,12 +126,9 @@ fi
 # --- Timestamp ---
 TIMESTAMP=$(date +%s)
 
-# --- JSON-escape description ---
-ESCAPED_DESC=$(python3 -c "import json,sys; print(json.dumps(sys.argv[1])[1:-1])" "$DESCRIPTION")
-
 # --- Build result JSON line ---
 # Use python3 for proper JSON assembly
-RESULT_LINE=$(_METRIC="$METRIC" _STATUS="$STATUS" _DESC="$ESCAPED_DESC" _COMMIT="$COMMIT" \
+RESULT_LINE=$(_METRIC="$METRIC" _STATUS="$STATUS" _DESC="$DESCRIPTION" _COMMIT="$COMMIT" \
   _SEGMENT="$SEGMENT" _TIMESTAMP="$TIMESTAMP" _CONFIDENCE="$CONFIDENCE" \
   _SEC_METRICS="$SECONDARY_METRICS" _ASI="$ASI" \
   python3 << 'PYEOF'
@@ -128,6 +141,10 @@ if metric_val == int(metric_val):
 else:
     metric_val_str = str(metric_val)
 
+confidence = os.environ['_CONFIDENCE']
+sec = os.environ['_SEC_METRICS']
+asi = os.environ['_ASI']
+
 result = {
     "type": "result",
     "commit": os.environ['_COMMIT'],
@@ -136,21 +153,10 @@ result = {
     "description": os.environ['_DESC'],
     "segment": int(os.environ['_SEGMENT']),
     "timestamp": int(os.environ['_TIMESTAMP']),
+    "confidence": float(confidence) if confidence != 'null' else None,
+    "metrics": json.loads(sec),
+    "asi": json.loads(asi),
 }
-
-confidence = os.environ['_CONFIDENCE']
-if confidence != 'null':
-    result["confidence"] = float(confidence)
-
-sec = os.environ['_SEC_METRICS']
-if sec != 'null':
-    sec_parsed = json.loads(sec)
-    result["secondary_metrics"] = sec_parsed
-
-asi = os.environ['_ASI']
-if asi != 'null':
-    asi_parsed = json.loads(asi)
-    result["asi"] = asi_parsed
 
 print(json.dumps(result, separators=(',', ':')))
 PYEOF
