@@ -5,9 +5,6 @@
   "author": {
     "name": "webmatze"
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/webmatze/claude-autoresearch"
-  },
+  "repository": "https://github.com/webmatze/claude-autoresearch",
   "license": "MIT"
 }
