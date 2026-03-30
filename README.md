@@ -8,24 +8,23 @@ Autonomous experiment loop for [Claude Code](https://claude.ai/code). Inspired b
 
 | Component | Description |
 |-----------|-------------|
-| `/autoresearch` skill | Set up and run an autonomous experiment loop |
-| `/autoresearch-finalize` skill | Turn a noisy branch into clean, reviewable branches |
+| `/webmatze:autoresearch` skill | Set up and run an autonomous experiment loop |
+| `/webmatze:autoresearch-finalize` skill | Turn a noisy branch into clean, reviewable branches |
 | Helper scripts | `init_experiment.sh`, `run_experiment.sh`, `log_experiment.sh`, `finalize.sh` |
 
 ## Install
 
-Clone this repo and add the skills to your Claude Code settings:
+This is a Claude Code plugin. Install it by loading from the local directory:
 
 ```bash
 git clone https://github.com/webmatze/claude-autoresearch.git ~/.claude-autoresearch
+claude --plugin-dir ~/.claude-autoresearch
 ```
 
-Add to `~/.claude/settings.json` (global) or `.claude/settings.json` (per-project):
+Or for development/testing, run directly:
 
-```json
-{
-  "skills": ["~/.claude-autoresearch/skills"]
-}
+```bash
+claude --plugin-dir ./path/to/claude-autoresearch
 ```
 
 ### Dependencies
@@ -41,7 +40,7 @@ Add to `~/.claude/settings.json` (global) or `.claude/settings.json` (per-projec
 ### 1. Start autoresearch
 
 ```
-/autoresearch optimize unit test runtime, monitor correctness
+/webmatze:autoresearch optimize unit test runtime, monitor correctness
 ```
 
 Claude will ask about your goal, command, metric, and files in scope — then create a branch, write session files, run a baseline, and start looping.
@@ -53,7 +52,7 @@ Claude runs autonomously: edit → benchmark → keep or revert → repeat. Ever
 ### 3. Finalize into reviewable branches
 
 ```
-/autoresearch-finalize
+/webmatze:autoresearch-finalize
 ```
 
 Claude reads the experiment log, groups kept experiments into logical changesets, and creates independent branches from the merge-base. Each branch can be reviewed and merged independently.
@@ -85,8 +84,8 @@ Two skills encode the workflow. Four bash scripts handle the mechanics.
 ┌────────────────────────┐     ┌─────────────────────────┐
 │  Skills (prompts)      │     │  Scripts (bash)          │
 │                        │     │                          │
-│  /autoresearch         │────▶│  init_experiment.sh      │
-│  /autoresearch-finalize│────▶│  run_experiment.sh       │
+│  /webmatze:autoresearch │───▶│  init_experiment.sh      │
+│  /webmatze:auto…finalize│───▶│  run_experiment.sh       │
 │                        │     │  log_experiment.sh       │
 │                        │     │  finalize.sh             │
 └────────────────────────┘     └─────────────────────────┘
