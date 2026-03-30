@@ -77,49 +77,7 @@ print(' '.join(str(m) for m in metrics))
 ")
   ALL_METRICS="$ALL_METRICS $METRIC"
 
-  CONFIDENCE=$(echo "$ALL_METRICS" | awk '{
-    n = split($0, vals, " ")
-    if (n < 3) { print "null"; exit }
-
-    # Sort values
-    for (i = 1; i <= n; i++)
-      for (j = i+1; j <= n; j++)
-        if (vals[i]+0 > vals[j]+0) { t=vals[i]; vals[i]=vals[j]; vals[j]=t }
-
-    # Median
-    if (n % 2 == 1)
-      median = vals[int(n/2)+1]+0
-    else
-      median = (vals[n/2]+0 + vals[n/2+1]+0) / 2
-
-    # Absolute deviations
-    for (i = 1; i <= n; i++) {
-      devs[i] = vals[i]+0 - median
-      if (devs[i] < 0) devs[i] = -devs[i]
-    }
-
-    # Sort deviations
-    for (i = 1; i <= n; i++)
-      for (j = i+1; j <= n; j++)
-        if (devs[i]+0 > devs[j]+0) { t=devs[i]; devs[i]=devs[j]; devs[j]=t }
-
-    # MAD
-    if (n % 2 == 1)
-      mad = devs[int(n/2)+1]+0
-    else
-      mad = (devs[n/2]+0 + devs[n/2+1]+0) / 2
-
-    if (mad == 0) { print "null"; exit }
-
-    # Best improvement from baseline
-    baseline = vals[1]+0
-    best_imp = baseline - vals[1]+0
-    # Actually we need the baseline from the first result, not sorted first
-    # We will use the passed-in baseline value
-    print "MAD=" mad
-  }')
-
-  # If awk couldn't compute, fall back to python for the full calc
+  # MAD-based confidence: median, MAD, then |best_improvement| / MAD
   CONFIDENCE=$(echo "$ALL_METRICS" "$BASELINE" | python3 -c "
 import sys
 parts = sys.stdin.read().strip().split()
